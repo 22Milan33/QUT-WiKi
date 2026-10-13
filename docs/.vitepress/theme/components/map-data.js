@@ -589,6 +589,22 @@ export const BUILDINGS = [
     desc: '市北校区主教学楼（南院），位置经高德POI「卓越人才培养办公室（1号教学楼309）」与「抚顺路11号甲（1号教学楼西北80米）」交叉确认。'
   },
   {
+    id: 's_teaching_06',
+    name: '1号实验楼',
+    category: 'teaching',
+    campusId: 's',
+    coord: [120.372645,36.098662],
+    desc: '位于市北校区南区（高德POI）。'
+  },
+  {
+    id: 's_teaching_05',
+    name: '2号实验楼',
+    category: 'teaching',
+    campusId: 's',
+    coord: [120.372889,36.099205],
+    desc: '位于市北校区南区（高德POI）。'
+  },
+  {
     id: 's_teaching_02',
     name: '暖通实验楼',
     category: 'teaching',
