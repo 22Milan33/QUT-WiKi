@@ -331,6 +331,12 @@ mark.search-term-highlight.search-term-fade {
   opacity: 0.55;
 }
 
+.xlsx-card-contact-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
 .xlsx-info-item {
   font-size: 13px;
   color: var(--vp-c-text-2);
