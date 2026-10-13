@@ -167,7 +167,7 @@ export const BUILDINGS = [
     category: 'college',
     campusId: 'h',
     coord: [120.20491,35.971266],
-    desc: '设置在现代教育中心内部，有青岛银行的ATM机，可存取现金'
+    desc: '部分行政办公室，广播站，学校警务处设置在此。'
   },
   {
     id: 'h_library_01',
@@ -566,11 +566,11 @@ export const BUILDINGS = [
   },
   {
     id: 'h_admin_01',
-    name: '行政楼',
+    name: '现代教育中心',
     category: 'admin',
     campusId: 'h',
     coord: [120.205283,35.971689],
-    desc: '学校行政办公场所。'
+    desc: '学校行政办公场所。有青岛银行的ATM机，可存取现金'
   },
   {
     id: 's_teaching_01',
