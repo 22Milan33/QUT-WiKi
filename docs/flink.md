@@ -54,6 +54,11 @@ pageClass: flink-page
       descr: 华北电力大学学生共同维护的非官方校园知识库。把散落的经验，整理成下一位同学用得上的指南。
       avatar: https://pic1.imgdb.cn/i/034NcYAXaYG3xUkpHgIa52.svg
       siteshot: https://pic1.imgdb.cn/i/034NcI0mEeFh9ynjUmYUsz.webp
+    - name: 西邮 Wiki
+      link: https://wiki.cooo.site/
+      descr: 西安邮电大学非官方校园生活指南
+      avatar: https://pic1.imgdb.cn/i/034f2LQxcsPbb372pC9Cdo.svg
+      siteshot: https://pic1.imgdb.cn/i/034f2OeaTp6zXQlRUYqPd5.webp
 
 </flink>
 
