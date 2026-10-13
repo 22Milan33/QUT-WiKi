@@ -98,7 +98,7 @@ pageClass: flink-page
 ```YAML
 - name: 青岛理工大学生活指南
 - link: https://wiki.quters.top
-- logo: https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
+- avatar: https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
 - descr: 为青岛理工大学学生提供便捷的生活信息和资源
 - siteshot: https://pic1.imgdb.cn/i/034C0yWdICJxgwsV9UPSW6.webp
 ```
