@@ -45,7 +45,7 @@ pageClass: flink-page
       avatar: https://pic1.imgdb.cn/i/034Bcfvcsb7jmd4RabMVIG.webp
       siteshot: https://pic1.imgdb.cn/i/034BcdOT3qatoGK7PLSnjp.webp
     - name: 南开Wiki
-      link: https://cure2004.github.io/NKUwiki/
+      link: https://freshnkuer.wiki/
       descr: 南开 Wiki -南开大学公益校园生活百科
       avatar: https://pic1.imgdb.cn/i/034JLxfrJIaOBytx5y8dI7.svg
       siteshot: https://pic1.imgdb.cn/i/034JLyk7o9jTTCrIU50dyv.webp
@@ -54,6 +54,11 @@ pageClass: flink-page
       descr: 华北电力大学学生共同维护的非官方校园知识库。把散落的经验，整理成下一位同学用得上的指南。
       avatar: https://pic1.imgdb.cn/i/034NcYAXaYG3xUkpHgIa52.svg
       siteshot: https://pic1.imgdb.cn/i/034NcI0mEeFh9ynjUmYUsz.webp
+    - name: 西邮 Wiki
+      link: https://wiki.cooo.site/
+      descr: 西安邮电大学非官方校园生活指南
+      avatar: https://pic1.imgdb.cn/i/034f2LQxcsPbb372pC9Cdo.svg
+      siteshot: https://pic1.imgdb.cn/i/034f2OeaTp6zXQlRUYqPd5.webp
 
 </flink>
 
@@ -62,7 +67,7 @@ pageClass: flink-page
 <flink>
 
     - name: MOE 购机指南
-      link: https://moe.lkyu.cf/
+      link: https://moe.lkyu.top/
       avatar: https://pic.imgdb.cn/i/033pp0Ajx1ko6wLY34CD4n.webp
       descr: 写给大学生的电脑科普&购买一体方案
       siteshot: https://pic.imgdb.cn/i/033pCCZhDIJ8B8mzRZIVW7.webp
@@ -90,9 +95,10 @@ pageClass: flink-page
 
 ## 本站友链信息
 
-- 名称: 青岛理工大学生活指南
-- 链接: https://wiki.quters.top
-- logo: https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
-- 描述: 为青岛理工大学学生提供便捷的生活信息和资源
-- 网站截图: https://pic1.imgdb.cn/i/034C0yWdICJxgwsV9UPSW6.webp
-
+```YAML
+- name: 青岛理工大学生活指南
+- link: https://wiki.quters.top
+- avatar: https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
+- descr: 为青岛理工大学学生提供便捷的生活信息和资源
+- siteshot: https://pic1.imgdb.cn/i/034C0yWdICJxgwsV9UPSW6.webp
+```

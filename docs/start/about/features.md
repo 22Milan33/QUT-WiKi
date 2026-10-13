@@ -28,7 +28,7 @@ top: 4
 | `name=A` | 卡片名称列 | `name=学生社团名称` |
 | `key=B,C` | 分组列，支持多级分组（`h3` 标题）。<br>不填则不分组，所有卡片平铺。 | `key=业务指导单位` |
 | `hide=D,E` | 隐藏的列（不渲染） | `hide=序号` |
-| `contact=F,G` | 底部联系方式，每个值前带链接图标；点击可复制其中的数字 | `contact=联系方式` |
+| `contact=F,G` | 底部联系方式，每个值前带链接图标；点击可复制其中的数字。值形如 `QQ群：xxx` / `微信个人：xxx` 时自动显示对应的平台图标 | `contact=联系方式` |
 | `avatar=H` | 头像列：URL 直接使用，QQ 群号自动拼接 `p.qlogo.cn` 地址 | `avatar=群头像链接` |
 | `desc=I` | 描述列，显示在名称下方 | `desc=简介` |
 | `tag=J,K` | 标签列（逗号分隔），指定后**只**渲染这些列为标签；<br>不指定时回退到旧行为：所有非隐藏/非联系列自动变为标签 | `tag=备注` |
@@ -87,6 +87,31 @@ Linux 生产环境应使用 `code/Dockerfile` 构建镜像，由镜像构建阶�
 环境变量 `QUTWIKI_XLSX_API` 可指定后端地址，用于服务器部署场景。
 
 同步 API 不支持 `force` 参数。服务端会执行请求限流、全局 Chromium 并发控制以及工作表和输出大小限制。
+
+### 强制刷新远端表格
+
+服务端缓存默认 1 小时，客户端 `docs/.http_cache` 同样 1 小时，任一层命中都会拿到旧数据。需要立即拉取最新表格时，用运维手段同时清掉两层缓存：
+
+```bash
+npm run build:refresh   # 清远端缓存 + 强制刷新构建（build:fresh）
+npm run sync:refresh    # 只清远端缓存
+```
+
+`sync:refresh` 通过 SSH 登录同步服务器，删除缓存目录下的 `.xlsx`（脚本 `docs/scripts/refresh-sync-cache.mjs`），下次构建请求该文档时服务端缓存未命中，会用 Chromium 重新同步。环境变量可直接写在仓库根目录 `.env.local`（已 gitignore），也支持命令行传入。支持以下变量：
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `SYNC_SSH_TARGET` | - | 完整 SSH 目标，如 `baimaoyun`（`~/.ssh/config` 别名）或 `root@1.2.3.4`；设置后忽略下面三项 |
+| `SYNC_SSH_HOST` | 必填 | 同步服务器地址（不使用 `SYNC_SSH_TARGET` 时） |
+| `SYNC_SSH_PORT` | - | SSH 端口，不填用 SSH 默认或 config 中的 `Port` |
+| `SYNC_SSH_USER` | - | 登录用户，不填用 SSH 默认或 config 中的 `User` |
+| `SYNC_SSH_KEY` | - | 私钥文件路径，不填则用默认密钥或 ssh-agent |
+| `SYNC_CACHE_DIR` | `/tmp/qutwiki_xlsx_cache` | 服务端缓存目录；官方 Docker 镜像内为 `/cache` |
+| `SYNC_DOCKER_CONTAINER` | - | 服务跑在 Docker 时填容器名，改用 `docker exec` 清理 |
+| `SYNC_SSH_SUDO` | - | 设为 `1` 时用 sudo 删除 |
+| `SYNC_SSH_STRICT` | - | 设为 `1` 时启用严格 host key 校验（默认 `accept-new`） |
+
+GitHub Actions 部署流程（`.github/workflows/deploy.yml`）支持手动触发（Run workflow）时勾选 **force_refresh**：会先清远端缓存，再用 `build:fresh` 构建。需在仓库 Secrets 配置 `SYNC_SSH_HOST`、`SYNC_SSH_PORT`、`SYNC_SSH_USER`、`SYNC_SSH_KEY`（可选 `SYNC_CACHE_DIR`、`SYNC_DOCKER_CONTAINER`）。
 
 ---
 
@@ -278,7 +303,75 @@ contributors:
 
 ---
 
-## 六、Twikoo 评论
+## 六、页面历史
+
+普通文档页底部会自动显示“页面历史”，用于查看当前文章对应的 Git 提交记录。
+
+### 展示内容
+
+页面历史位于评论区之后，默认收起。点击“查看完整历史”后，可以看到每次提交的：
+
+- 短哈希值，链接到 GitHub 对应提交页面
+- 提交信息
+- 编辑人，链接到其 GitHub 主页
+- 编辑时间，格式为 `2026年10月1日 22:38`
+
+示例：
+
+```text
+8dc8cc1 修订: 医疗保险的原文件名 LucasAndrew 于 2026年10月1日 22:38
+```
+
+“页面历史”本身是二级标题，会自动出现在桌面端右侧的本页目录中。页面历史展开区域使用内嵌折叠卡片，提交哈希值使用独立块样式展示。
+
+### 数据生成
+
+构建前由 `docs/.vitepress/scripts/gen-contributors.mjs` 执行 Git 查询，为每篇 Markdown 文章生成对应的历史数据：
+
+```text
+docs/.vitepress/history.json
+```
+
+脚本使用 `git log --follow`，因此文章经过文件名修改或路径迁移后，仍会继续追踪原文件的提交历史。该文件和 `contributors.json` 一样属于构建产物，已加入 `.gitignore`，不会提交到仓库。
+
+每次执行以下命令时都会重新生成：
+
+```bash
+npm run dev
+npm run build
+```
+
+### 编辑人映射
+
+编辑人的 Git 提交名称会通过 `docs/.vitepress/contributors-mapping.json` 映射到 GitHub 用户名和头像。匹配支持：
+
+- Git 提交名称
+- GitHub noreply 邮箱中的用户名
+- 映射项中的 GitHub 用户名
+
+例如：
+
+```json
+{
+  "LucasAndrew": {
+    "github": "LucasAndrew0120",
+    "avatar": "https://example.com/avatar.png"
+  }
+}
+```
+
+如果找不到映射，仍会显示 Git 提交中的原始编辑人名称，但不会生成 GitHub 主页链接。
+
+关联文件：
+
+- `docs/.vitepress/scripts/gen-contributors.mjs`——生成贡献者和页面历史数据
+- `docs/.vitepress/history.json`——构建时生成的页面历史数据
+- `docs/.vitepress/theme/components/GitHistory.vue`——页面历史前端组件
+- `docs/.vitepress/contributors-mapping.json`——编辑人 GitHub 映射
+
+---
+
+## 七、Twikoo 评论
 
 普通文档页底部使用 [Twikoo](https://twikoo.js.org/) 提供评论功能。首页和 `layout: page` 的页面不会显示评论区。
 
@@ -302,7 +395,7 @@ Twikoo 客户端采用动态加载，不参与服务端渲染，也不会进入�
 
 ---
 
-## 七、美食评分卡片
+## 八、美食评分卡片
 
 `<FoodCards>` 将美食条目渲染为「封面 + 名称 + 平均分 + 星级选择器 + 评价按钮」的卡片，点「评价」弹出详情窗口，内含地点、人均、推荐、多图、聚合评分与该店铺的 Twikoo 评论。评分复用 Twikoo 存储：提交评论时自动在正文前拼上 `[rating:n]` 标记，前端解析后统计平均分，评论列表中的标记会渲染成星级徽章。
 
@@ -377,7 +470,7 @@ Twikoo 客户端采用动态加载，不参与服务端渲染，也不会进入�
 
 ---
 
-## 八、Frontmatter 扩展配置
+## 九、Frontmatter 扩展配置
 
 QUTWiKi 在 VitePress 原生 frontmatter 之外新增以下配置项：
 
@@ -398,7 +491,7 @@ contributors:
 
 ---
 
-## 九、全站公告横条
+## 十、全站公告横条
 
 网站支持在顶部导航栏下方显示一条全站公告，适合发布维护通知、重要提醒或临时消息。公告会显示在所有页面，并自动适配桌面端和移动端。
 
@@ -422,7 +515,7 @@ export const siteAnnouncement = {
 
 ---
 
-## 十、图床资源批量下载与本地化
+## 十一、图床资源批量下载与本地化
 
 站点图片目前托管在第三方图床（`pic1.imgdb.cn`、`pic.imgdb.cn`）。若图床失效、需要整体备份或迁移到自建存储，可用 `docs/scripts/images.mjs` 一键抓取并精确替换链接。
 
@@ -486,7 +579,7 @@ https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
 
 ---
 
-## 十一、构建脚本
+## 十二、构建脚本
 
 项目根目录的 `build.ps1` 一键构建并启动开发服务器：
 
@@ -494,6 +587,78 @@ https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png
 ./build.ps1
 ```
 
-流程：生成贡献者数据 → `npm run build` → 清理 5173 端口旧进程 → `npm run dev`
+流程：生成贡献者数据 → `npm run build` → 自动选取一个未被占用的随机端口 → 清理该端口旧进程 → `npm run dev`
+
+端口由 `docs/.vitepress/scripts/free-port.mjs` 在 5000–60000 范围内随机探测可用端口，避免固定在某个可能被系统保留或占用的端口上。启动后控制台会打印实际监听地址，也可用 `./build.ps1 -Port 5173` 指定端口。
 
 `npm run build:fresh` 会忽略本地 `docs/.http_cache/` 的有效期并重新请求同步服务，但服务端仍按自身缓存和限流策略处理，不提供强制绕过缓存的参数。
+
+---
+
+## 十三、首页海报卡片
+
+`<PosterCards>` 用于在首页 features 下方插入海报图。桌面端按 **16:9** 展示、移动端按 **9:16** 展示，两套图片通过原生 `<picture>` 自动切换，SSR 无闪烁。
+
+### 用法
+
+组件已全局注册，在 `docs/index.md` 的 frontmatter 之后写标签即可：
+
+```md
+<PosterCards />
+```
+
+也可在任意页面内联传入数据：
+
+```md
+<PosterCards title="推荐海报" :min-width="360" :items="[
+  { desktop: 'https://example.com/poster-16x9.webp', mobile: 'https://example.com/poster-9x16.webp', title: '标题', description: '描述', author: '作者', date: '2026-01-01', href: '/' },
+]" />
+```
+
+### 参数说明
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `items` | array | `POSTERS` | 海报数组，缺省读取数据文件 |
+| `title` | string | 空 | 海报区标题，留空不显示 |
+| `min-width` | number \| string | `320` | 卡片最小列宽，容器放不下时自动折行；单条海报会占满整行 |
+
+### 数据文件
+
+海报写在 `docs/.vitepress/theme/components/poster-data.js`，在 `POSTERS` 数组中追加：
+
+```js
+{
+  desktop: 'https://example.com/poster-16x9.webp',
+  mobile: 'https://example.com/poster-9x16.webp',
+  image: 'https://example.com/poster.webp',
+  title: '海报标题',
+  description: '一句话描述。',
+  author: 'QUTWiKi',
+  date: '2026-01-01',
+  href: '/start/preface/introduction',
+}
+```
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `desktop` | ✅ | 桌面端图片（16:9） |
+| `mobile` | ✅ | 移动端图片（9:16） |
+| `image` | ❌ | 通用兜底图，`desktop` 或 `mobile` 缺省时使用 |
+| `title` | ❌ | 海报标题 |
+| `description` | ❌ | 描述文字 |
+| `author` | ❌ | 作者，与日期同行展示 |
+| `date` | ❌ | 创作日期，原样展示 |
+| `href` | ❌ | 标题跳转链接，仅允许 `http`、`https` 或站内相对链接；外部链接自动新窗口打开 |
+
+### 展示说明
+
+- 断点 `768px`：视口 ≥ 768px 取 `desktop` 图并按 16:9 展示，否则取 `mobile` 图并按 9:16 展示
+- 单条海报占满整行，多条自动排成响应式网格
+- 点击海报图片会打开全站图片查看器，支持缩放、拖拽，多张海报可左右切换
+- 配置 `href` 时，点击标题跳转到对应链接（外链自动新窗口打开）
+- 悬停时卡片轻微上浮、图片放大、边框变主题色
+
+### 图片要求
+
+`desktop`、`mobile` 需为 `https://` 直链或 `/` 开头的站内 `public` 路径。
