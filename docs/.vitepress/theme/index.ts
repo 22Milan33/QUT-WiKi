@@ -5,6 +5,9 @@ import AppCards from './components/AppCards.vue'
 import Flink from './components/Flink.vue'
 import Flinks from './components/Flinks.vue'
 import MapView from './components/MapView.vue'
+import FoodCards from './components/FoodCards.vue'
+import PosterCards from './components/PosterCards.vue'
+import GitHistory from './components/GitHistory.vue'
 import './style.css'
 
 export default {
@@ -17,5 +20,8 @@ export default {
     app.component('flink', Flink)
     app.component('Flinks', Flinks)
     app.component('MapView', MapView)
+    app.component('FoodCards', FoodCards)
+    app.component('PosterCards', PosterCards)
+    app.component('GitHistory', GitHistory)
   },
 }

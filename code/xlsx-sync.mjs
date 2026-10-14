@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import chromium from '@sparticuz/chromium'
@@ -7,9 +7,31 @@ import XLSX from 'xlsx'
 
 export const CACHE_DIR = process.env.CACHE_DIR || join(tmpdir(), 'qutwiki_xlsx_cache')
 export const CACHE_TTL = Number(process.env.CACHE_TTL || 60 * 60 * 1000)
+export const MAX_CONCURRENT_SYNCS = Number(process.env.MAX_CONCURRENT_SYNCS || 2)
+export const MAX_SYNC_QUEUE = Number(process.env.MAX_SYNC_QUEUE || 10)
+const MAX_SHEETS = Number(process.env.MAX_SHEETS || 20)
+const MAX_ROWS = Number(process.env.MAX_ROWS || 5000)
+const MAX_COLUMNS = Number(process.env.MAX_COLUMNS || 100)
+const MAX_CELLS = Number(process.env.MAX_CELLS || 100000)
+const MAX_CELL_LENGTH = Number(process.env.MAX_CELL_LENGTH || 10000)
+const MAX_XLSX_BYTES = Number(process.env.MAX_XLSX_BYTES || 20 * 1024 * 1024)
+const MAX_CACHE_FILES = Number(process.env.MAX_CACHE_FILES || 100)
 
 const syncing = new Map()
-mkdirSync(CACHE_DIR, { recursive: true })
+const syncQueue = []
+let activeSyncs = 0
+mkdirSync(CACHE_DIR, { recursive: true, mode: 0o700 })
+chmodSync(CACHE_DIR, 0o700)
+
+if (!Number.isInteger(MAX_CONCURRENT_SYNCS) || MAX_CONCURRENT_SYNCS < 1) {
+  throw new Error('MAX_CONCURRENT_SYNCS 必须是大于 0 的整数')
+}
+if (!Number.isInteger(MAX_SYNC_QUEUE) || MAX_SYNC_QUEUE < 0) {
+  throw new Error('MAX_SYNC_QUEUE 必须是大于或等于 0 的整数')
+}
+for (const [name, value] of Object.entries({ MAX_SHEETS, MAX_ROWS, MAX_COLUMNS, MAX_CELLS, MAX_CELL_LENGTH, MAX_XLSX_BYTES, MAX_CACHE_FILES })) {
+  if (!Number.isInteger(value) || value < 1) throw new Error(`${name} 必须是大于 0 的整数`)
+}
 
 export function ts() {
   return new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' })
@@ -36,7 +58,82 @@ export function fromCache(key) {
 }
 
 export function isTencentSheetUrl(url) {
-  return /^https:\/\/docs\.qq\.com\/sheet\/[A-Za-z0-9]+/.test(url)
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' &&
+      parsed.hostname === 'docs.qq.com' &&
+      parsed.port === '' &&
+      parsed.username === '' &&
+      parsed.password === '' &&
+      /^\/sheet\/[A-Za-z0-9]+$/.test(parsed.pathname)
+  } catch {
+    return false
+  }
+}
+
+function removeExpiredCacheFiles() {
+  const now = Date.now()
+  const files = []
+  for (const name of readdirSync(CACHE_DIR).filter(name => name.endsWith('.xlsx'))) {
+    try {
+      const file = join(CACHE_DIR, name)
+      const mtimeMs = statSync(file).mtimeMs
+      if (now - mtimeMs > CACHE_TTL) unlinkSync(file)
+      else files.push({ file, mtimeMs })
+    } catch {}
+  }
+  files.sort((a, b) => b.mtimeMs - a.mtimeMs)
+  for (const { file } of files.slice(MAX_CACHE_FILES)) {
+    try { unlinkSync(file) } catch {}
+  }
+}
+
+removeExpiredCacheFiles()
+const cleanupTimer = setInterval(removeExpiredCacheFiles, Math.max(CACHE_TTL, 60 * 60 * 1000))
+cleanupTimer.unref()
+
+export class SyncQueueFullError extends Error {
+  constructor() {
+    super('同步任务繁忙，请稍后重试')
+    this.name = 'SyncQueueFullError'
+  }
+}
+
+async function acquireSyncSlot() {
+  if (activeSyncs < MAX_CONCURRENT_SYNCS) {
+    activeSyncs++
+    return
+  }
+  if (syncQueue.length >= MAX_SYNC_QUEUE) throw new SyncQueueFullError()
+
+  log(`  → 达到并发上限，进入队列（${syncQueue.length + 1}/${MAX_SYNC_QUEUE}）`)
+  await new Promise(resolve => syncQueue.push(resolve))
+}
+
+function releaseSyncSlot() {
+  const next = syncQueue.shift()
+  if (next) next()
+  else activeSyncs--
+}
+
+async function syncWithLimit(url, syncTimeout) {
+  await acquireSyncSlot()
+  const syncTask = syncSheets(url).finally(releaseSyncSlot)
+  let timeoutId
+
+  try {
+    return await Promise.race([
+      syncTask,
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`同步超时（${syncTimeout / 60000} 分钟），已放弃本次任务`)),
+          syncTimeout,
+        )
+      }),
+    ])
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 export async function syncSheets(docUrl) {
@@ -64,6 +161,7 @@ export async function syncSheets(docUrl) {
         name: sheet.getSheetName(),
       }))
     })
+    if (sheetInfo.length > MAX_SHEETS) throw new Error(`工作表数量超过限制（${MAX_SHEETS}）`)
     log(`发现 ${sheetInfo.length} 个工作表：${sheetInfo.map(sheet => sheet.name).join('、')}`)
 
     const workbook = XLSX.utils.book_new()
@@ -71,19 +169,27 @@ export async function syncSheets(docUrl) {
       log(`读取工作表「${name}」...`)
       const sheetUrl = new URL(docUrl)
       sheetUrl.searchParams.set('tab', id)
-      await page.goto(sheetUrl.href, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      try {
+        await page.goto(sheetUrl.href, { waitUntil: 'domcontentloaded', timeout: 30000 })
+      } catch (error) {
+        if (!/frame.*detached|detached.*frame/i.test(error.message)) throw error
+        log('  → 页面接管了导航，继续等待工作表加载')
+      }
       await page.waitForFunction((sheetId) => {
         const workbook = window.SpreadsheetApp?.workbook
         return workbook?.worksheetManager?.getSheetBySheetId?.(sheetId)?.cellDataGrid
       }, { timeout: 60000, polling: 500 }, id)
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      const rows = await page.evaluate((sheetId) => {
+      const rows = await page.evaluate((sheetId, limits) => {
         const sheet = window.SpreadsheetApp.workbook.worksheetManager.getSheetBySheetId(sheetId)
         if (!sheet) return []
         const grid = sheet.cellDataGrid
         const rowCount = sheet.getRowCount()
         const colCount = sheet.getColCount()
+        if (rowCount > limits.maxRows) throw new Error(`行数超过限制（${limits.maxRows}）`)
+        if (colCount > limits.maxColumns) throw new Error(`列数超过限制（${limits.maxColumns}）`)
+        if (rowCount * colCount > limits.maxCells) throw new Error(`单元格数量超过限制（${limits.maxCells}）`)
         const data = []
         let trailingEmptyRows = 0
 
@@ -99,7 +205,7 @@ export async function syncSheets(docUrl) {
           const row = []
           let hasData = false
           for (let colIndex = 0; colIndex < colCount; colIndex++) {
-            const text = textOf(grid.getCellData(rowIndex, colIndex))
+            const text = textOf(grid.getCellData(rowIndex, colIndex)).slice(0, limits.maxCellLength)
             row.push(text)
             if (text) hasData = true
           }
@@ -118,7 +224,12 @@ export async function syncSheets(docUrl) {
           return max
         }, 0)
         return data.map(row => row.slice(0, usedColumns))
-      }, id)
+      }, id, {
+        maxRows: MAX_ROWS,
+        maxColumns: MAX_COLUMNS,
+        maxCells: MAX_CELLS,
+        maxCellLength: MAX_CELL_LENGTH,
+      })
 
       if (rows.length === 0) {
         log('  → 空表，跳过')
@@ -130,7 +241,9 @@ export async function syncSheets(docUrl) {
     }
 
     if (workbook.SheetNames.length === 0) throw new Error('腾讯文档中没有可读取的工作表')
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+    if (buffer.length > MAX_XLSX_BYTES) throw new Error(`XLSX 大小超过限制（${MAX_XLSX_BYTES} 字节）`)
+    return buffer
   } finally {
     try {
       await Promise.race([
@@ -153,12 +266,7 @@ export function syncOnce(key, url) {
 
   // 看门狗：同步任务卡死时强制放弃并释放锁，避免后续请求无限等待
   const syncTimeout = Number(process.env.SYNC_TIMEOUT || 5 * 60 * 1000)
-  const task = Promise.race([
-    syncSheets(url),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`同步超时（${syncTimeout / 60000} 分钟），已放弃本次任务`)), syncTimeout),
-    ),
-  ]).finally(() => syncing.delete(key))
+  const task = syncWithLimit(url, syncTimeout).finally(() => syncing.delete(key))
   syncing.set(key, task)
   return task
 }
@@ -166,7 +274,15 @@ export function syncOnce(key, url) {
 export async function refreshCache(docUrl) {
   const key = cacheKey(docUrl)
   const buffer = await syncOnce(key, docUrl)
+  if (buffer.length > MAX_XLSX_BYTES) throw new Error(`XLSX 大小超过限制（${MAX_XLSX_BYTES} 字节）`)
   const file = cacheFile(key)
-  writeFileSync(file, buffer)
+  const tempFile = `${file}.${process.pid}.${Date.now()}.tmp`
+  try {
+    writeFileSync(tempFile, buffer, { mode: 0o600, flag: 'wx' })
+    renameSync(tempFile, file)
+  } finally {
+    try { unlinkSync(tempFile) } catch {}
+  }
+  removeExpiredCacheFiles()
   return { buffer, file, key }
 }

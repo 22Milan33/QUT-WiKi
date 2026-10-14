@@ -1,7 +1,8 @@
 /**
  * QUTWiKi 校园地图数据
  * 坐标统一使用 GCJ02（高德坐标系），从高德拾取器获取：https://lbs.amap.com/tools/picker
- * 添加点位：在 BUILDINGS 数组追加 { id, name, category, campusId, coord: [经度, 纬度], desc }
+ * 添加点位：在 BUILDINGS 数组追加 { id, name, category, campusId, coord: [经度, 纬度], desc, photos: ['图片地址'] }
+ * photos 可放多张图片；旧的单图 photo 字段仍可正常显示。
  */
 
 export const CATEGORY_CONFIG = {
@@ -18,7 +19,9 @@ export const CATEGORY_CONFIG = {
   landmark:   { label: '地标建筑', color: '#015D95' },
   college:    { label: '学院楼',   color: '#0E6FA8' },
   food:       { label: '附近美食', color: '#7BA8E0' },
+  shop:       { label: '商铺',     color: '#6C8FD4' },
   express:    { label: '快递点',   color: '#4A7CC0' },
+  tool:       { label: '维修点',   color: '#0E6FA8' },
   transit:    { label: '轨道交通', color: '#3B6BA5' }
 }
 
@@ -50,8 +53,11 @@ export const CATEGORY_ICON_PATHS = {
   college:
     '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
   food: '<path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"/><path d="M7 21h10"/><path d="M19.5 12 22 6"/><path d="M16.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.73 1.62"/><path d="M11.25 3c.27.1.8.53.74 1.36-.05.83-.93 1.2-.98 2.02-.06.78.33 1.24.72 1.62"/><path d="M6.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.74 1.62"/>',
+  shop: '<path d="M3 9l1-5h16l1 5"/><path d="M5 13v7h14v-7"/><path d="M9 20v-6h6v6"/><path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/>',
   express:
-    '<path d="M12 22v-9"/><path d="M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36z"/><path d="M20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13"/><path d="M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z"/>'
+    '<path d="M12 22v-9"/><path d="M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36z"/><path d="M20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13"/><path d="M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z"/>',
+  tool:
+    '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>'
 }
 
 export const CAMPUS_CONFIG = {
@@ -75,7 +81,9 @@ export const FILTER_LIST = [
   { key: 'landmark',   label: '地标建筑', icon: 'fa-star' },
   { key: 'college',    label: '学院楼',   icon: 'fa-university' },
   { key: 'food',       label: '附近美食', icon: 'fa-coffee' },
-  { key: 'express',    label: '快递点',   icon: 'fa-archive' },
+  { key: 'shop',       label: '商铺',     icon: 'fa-shopping-bag' },
+  { key: 'express',    label: '快递/外卖点',   icon: 'fa-archive' },
+  { key: 'tool',       label: '维修点',    icon: 'fa-wrench' },
   { key: 'transit',    label: '轨道交通', icon: 'fa-train' }
 ]
 
@@ -94,7 +102,8 @@ export const BUILDINGS = [
     category: 'teaching',
     campusId: 'h',
     coord: [120.204057,35.974134],
-    desc: '新教学楼，位于礼贤广场西南侧。'
+    desc: '新教学楼，位于礼贤广场西南侧。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTmF2PUTIcd74wQ5AG.webp']
   },
   {
     id: 'h_college_01',
@@ -102,7 +111,63 @@ export const BUILDINGS = [
     category: 'college',
     campusId: 'h',
     coord: [120.206655,35.971914],
-    desc: '中央院系区实验楼，供各学院实验教学、竞赛及课题组科研实验使用。'
+    desc: '中央院系区实验楼，供各学院实验教学、竞赛及课题组科研实验使用。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTmWsb6QFah5kxKuw4.webp']
+  },
+  {
+    id: 'h_college_02',
+    name: '敦华楼',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.205067,35.973993],
+    desc: '土木学院楼。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTmeNy9G8FxBBFKkaJ.webp']
+  },
+  {
+    id: 'h_college_03',
+    name: '土木楼',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.205435,35.973501],
+    desc: '土木学院楼。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTlEeeNKEgeWpuz7Z8.webp',
+             'https://pic1.imgdb.cn/i/034MSTkEwdeUySt6tilaAl.webp'
+            ]
+  },
+  {
+    id: 'h_college_04',
+    name: '管院楼',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.203947,35.972873],
+    desc: '管理工程学院楼。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTmaa5jjecC1TZMbwJ.webp']
+  },  
+  {
+    id: 'h_college_05',
+    name: '信控信管楼',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.206066,35.972596],
+    desc: '信息与控制工程学院、信息管理学院楼。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTktV73cG0i2nqdKHt.webp']
+  },
+  {
+    id: 'h_college_06',
+    name: '环院楼',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.205754, 35.972779],
+    desc: '环境与市政工程学院楼。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTkfeil1fWqFrOg7hW.webp']
+  },
+  {
+    id: 'h_college_07',
+    name: '学生服务中心',
+    category: 'college',
+    campusId: 'h',
+    coord: [120.20491,35.971266],
+    desc: '部分行政办公室，广播站，学校警务处设置在此。'
   },
   {
     id: 'h_library_01',
@@ -110,7 +175,8 @@ export const BUILDINGS = [
     category: 'library',
     campusId: 'h',
     coord: [120.20438,35.976418],
-    desc: '位于一号教学楼与礼贤广场之间，支持人脸/校园卡进入，自习区一座一码。'
+    desc: '位于一号教学楼与礼贤广场之间，支持人脸/校园卡进入，自习区一座一码。',
+    photos: ['https://pic1.imgdb.cn/i/034K7pyD3sVgfDKDzTehBI.webp']
   },
   {
     id: 'h_landmark_01',
@@ -118,7 +184,8 @@ export const BUILDINGS = [
     category: 'landmark',
     campusId: 'h',
     coord: [120.204446,35.975244],
-    desc: '用于学院升旗仪式、奖学金颁发、毕业典礼、百团大战等活动。'
+    desc: '用于学院升旗仪式、奖学金颁发、毕业典礼、百团大战等活动。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTm6qiBiBT4Jpf84Vo.webp']
   },
   {
     id: 'h_canteen_01',
@@ -406,7 +473,16 @@ export const BUILDINGS = [
     category: 'food',
     campusId: 'h',
     coord: [120.202899,35.976352],
-    desc: '西操场下有肯德基、天下好面、临榆炸鸡腿、茶百道、云南傣族米线、橙堡（多摊位）、好想来、超市等。'
+    desc: '西操场下有肯德基、天下好面、临榆炸鸡腿、茶百道、云南傣族米线、橙堡（多摊位）、好想来、超市等。',
+    photos: ['https://pic1.imgdb.cn/i/034MSTk8DfuB5T1hZjXXWF.webp']
+  },
+  {
+    id: 'h_express_00',
+    name: '北区外卖点',
+    category: 'express',
+    campusId: 'h',
+    coord: [120.203668,35.98031],
+    desc: '位于北区4公寓和7公寓之间，收取外卖。'
   },
   {
     id: 'h_express_01',
@@ -414,7 +490,7 @@ export const BUILDINGS = [
     category: 'express',
     campusId: 'h',
     coord: [120.202863,35.976703],
-    desc: '位于西操场下（西操场东侧），收取 200 号以上的快递（中通、圆通、申通、韵达、极兔等）。'
+    desc: '位于西操场下（西操场东侧），收取 200 号以下的快递（中通、圆通、申通、韵达、极兔等）。'
   },
   {
     id: 'h_express_02',
@@ -422,7 +498,7 @@ export const BUILDINGS = [
     category: 'express',
     campusId: 'h',
     coord: [120.208302,35.976257],
-    desc: '位于东区公寓楼下，收取 200 号以下的快递（中通、圆通、申通、韵达、极兔等）。'
+    desc: '位于东区公寓楼下，收取 200 号以上的快递（中通、圆通、申通、韵达、极兔等）。'
   },
   {
     id: 'h_express_03',
@@ -459,15 +535,15 @@ export const BUILDINGS = [
   {
     id: 'h_food_02',
     name: '翰墨轩打印店',
-    category: 'food',
+    category: 'shop',
     campusId: 'h',
     coord: [120.202456,35.977137],
     desc: '位于西操场下东北入口处，提供打印、复印、装订等服务。'
   },
   {
     id: 'h_food_03',
-    name: '东区学生服务中心',
-    category: 'food',
+    name: '东区学生服务中心(打印店)',
+    category: 'shop',
     campusId: 'h',
     coord: [120.208323,35.976362],
     desc: '位于东区宿舍下，提供打印等服务。'
@@ -490,11 +566,11 @@ export const BUILDINGS = [
   },
   {
     id: 'h_admin_01',
-    name: '行政楼',
+    name: '现代教育中心',
     category: 'admin',
     campusId: 'h',
     coord: [120.205283,35.971689],
-    desc: '学校行政办公场所。'
+    desc: '学校行政办公场所。有青岛银行的ATM机，可存取现金'
   },
   {
     id: 's_teaching_01',
@@ -511,6 +587,22 @@ export const BUILDINGS = [
     campusId: 's',
     coord: [120.371245,36.099380],
     desc: '市北校区主教学楼（南院），位置经高德POI「卓越人才培养办公室（1号教学楼309）」与「抚顺路11号甲（1号教学楼西北80米）」交叉确认。'
+  },
+  {
+    id: 's_teaching_06',
+    name: '1号实验楼',
+    category: 'teaching',
+    campusId: 's',
+    coord: [120.372645,36.098662],
+    desc: '位于市北校区南区（高德POI）。'
+  },
+  {
+    id: 's_teaching_05',
+    name: '2号实验楼',
+    category: 'teaching',
+    campusId: 's',
+    coord: [120.372889,36.099205],
+    desc: '位于市北校区南区（高德POI）。'
   },
   {
     id: 's_teaching_02',
@@ -683,7 +775,7 @@ export const BUILDINGS = [
   {
     id: 's_food_01',
     name: '百度图文',
-    category: 'food',
+    category: 'library',
     campusId: 's',
     coord: [120.371432,36.101743],
     desc: '理工大学北院食堂楼下网点（高德POI）。'

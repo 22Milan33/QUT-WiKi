@@ -16,17 +16,33 @@ withDefaults(defineProps<{
   textLines: 2,
   descLines: false,
 })
+
+function safeLink(value?: string) {
+  if (!value) return undefined
+  if (/^(\/|\.\/|\.\.\/|#)/.test(value)) return value.startsWith('//') ? undefined : value
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function isExternal(value?: string) {
+  return safeLink(value)?.startsWith('http') ?? false
+}
 </script>
 
 <template>
   <div class="app-cards" :style="{ '--col-width': width }">
     <component
-      :is="item.link ? 'a' : 'span'"
+      :is="safeLink(item.link) ? 'a' : 'span'"
       v-for="(item, index) in links"
       :key="index"
       class="link card"
-      :href="item.link"
-      :target="item.link?.startsWith('http') ? '_blank' : undefined"
+      :href="safeLink(item.link)"
+      :target="isExternal(item.link) ? '_blank' : undefined"
+      :rel="isExternal(item.link) ? 'noopener noreferrer' : undefined"
     >
       <img v-if="item.icon?.startsWith('http')" class="icon" :src="item.icon" alt="">
       <span v-if="item.text || item.desc" class="body">

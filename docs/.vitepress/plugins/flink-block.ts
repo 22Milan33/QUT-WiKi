@@ -11,6 +11,16 @@ const CLOSE_RE = /^<\/flink\s*>\s*$/
 const ITEM_RE = /^-\s+([\w-]+)\s*:\s*(.*)$/
 const KV_RE = /^([\w-]+)\s*:\s*(.*)$/
 
+function isSafeLink(value: string): boolean {
+  if (/^(\/|\.\/|\.\.\/|#)/.test(value)) return !value.startsWith('//')
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 // 解析 <flink> 容器内的列表，格式：
 //   - name: 站点名称
 //     link: https://example.com/
@@ -36,7 +46,7 @@ function parseFlinkItems(block: string): FlinkItem[] {
     if (kv && current) current[kv[1]] = kv[2]
   }
   return items
-    .filter((it) => it.name && it.link)
+    .filter((it) => it.name && it.link && isSafeLink(it.link))
     .map((it) => ({
       name: it.name!,
       link: it.link!,

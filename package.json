@@ -7,8 +7,13 @@
     "dev": "node docs/.vitepress/scripts/gen-contributors.mjs && vitepress dev docs",
     "build": "node docs/.vitepress/scripts/gen-contributors.mjs && vitepress build docs",
     "build:fresh": "node docs/.vitepress/scripts/build-fresh.mjs",
+    "build:refresh": "node docs/scripts/refresh-sync-cache.mjs && node docs/.vitepress/scripts/build-fresh.mjs",
+    "sync:refresh": "node docs/scripts/refresh-sync-cache.mjs",
     "preview": "vitepress preview docs",
-    "gen-contributors": "node docs/.vitepress/scripts/gen-contributors.mjs"
+    "gen-contributors": "node docs/.vitepress/scripts/gen-contributors.mjs",
+    "images:download": "node docs/scripts/images.mjs download",
+    "images:rewrite": "node docs/scripts/images.mjs rewrite",
+    "images:check": "node docs/scripts/images.mjs check"
   },
   "devDependencies": {
     "vitepress": "^1.5.0",
@@ -17,6 +22,7 @@
   "dependencies": {
     "markdown-it-task-lists": "^2.1.1",
     "playwright": "^1.62.1",
-    "xlsx": "^0.18.5"
+    "twikoo": "^2.0.9",
+    "xlsx": "file:vendor/xlsx-0.20.3.tgz"
   }
 }

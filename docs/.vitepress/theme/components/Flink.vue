@@ -14,7 +14,7 @@ function hideBroken(event: Event) {
 </script>
 
 <template>
-  <a class="qut-flink" :href="link" target="_blank" rel="noopener">
+  <a class="qut-flink" :href="link" target="_blank" rel="noopener noreferrer">
     <div class="qut-flink-img">
       <img
         v-if="siteshot"

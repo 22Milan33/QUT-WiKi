@@ -1,8 +1,13 @@
+/* z-index 分层：内容浮层 25 < 导航 45 < 遮罩 50 / 侧栏 60 */
+:root {
+  --vp-z-index-nav: 45;
+}
+
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url('https://pic1.imgdb.cn/i/033w5xaoCbMcBtYjt7vDX0.webp');
+  background-image: url('https://pic1.imgdb.cn/i/0349E4NqLje1oLHNowvJ4R.png');
   background-repeat: no-repeat;
   background-position: right 10% center;
   background-size: clamp(260px, 30vw, 450px);
@@ -45,6 +50,13 @@ body::before {
   table-layout: fixed;
 }
 
+.vp-doc th,
+.vp-doc td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .main img {
   cursor: zoom-in;
 }
@@ -55,6 +67,29 @@ body::before {
   color: #999;
   font-size: 16px;
   margin-top: 6px;
+}
+
+mark.search-term-highlight {
+  background-color: #ffe45c;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+  transition: background-color 1s ease;
+}
+
+mark.search-term-highlight.search-term-fade {
+  background-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  mark.search-term-highlight {
+    transition: none;
+  }
+}
+
+.dark mark.search-term-highlight {
+  background-color: #b8860b;
+  color: #fff;
 }
 
 .VPFooter.has-sidebar {
@@ -296,6 +331,12 @@ body::before {
   opacity: 0.55;
 }
 
+.xlsx-card-contact-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
 .xlsx-info-item {
   font-size: 13px;
   color: var(--vp-c-text-2);
@@ -324,6 +365,10 @@ body::before {
 }
 
 @media (min-width: 960px) {
+  .VPDoc .aside-container {
+    padding-bottom: 160px;
+  }
+
   .page-no-outline .VPContent {
     padding-left: 0 !important;
     padding-right: 0 !important;

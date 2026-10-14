@@ -53,10 +53,51 @@ const contributorMeta = [
       { text: 'GitHub', url: 'https://github.com/22Milan33' },
     ],
   },
+  {
+    name: 'Chen-qwq',
+    tags: [],
+    links: [
+      { text: 'GitHub', url: 'https://github.com/Chen-qwq' },
+    ],
+  },
+  {
+    name: 'Link-Blue',
+    tags: [],
+    links: [
+      { text: 'GitHub', url: 'https://github.com/Link-Blue' },
+    ],
+  },
+  {
+    name: 'cxz312',
+    tags: [],
+    links: [
+      { text: 'GitHub', url: 'https://github.com/CXZ-cxz-cell' },
+    ],
+  },
+  {
+    name: 'Selenophilia-lianyue',
+    tags: [],
+    links: [
+      { text: 'GitHub', url: 'https://github.com/Selenophilia-lianyue' },
+    ],
+  },
 ]
 
+function findMapping(name) {
+  if (!name) return {}
+  const direct = contributorsMapping[name]
+  if (direct) return direct
+  const lower = name.toLowerCase()
+  for (const [key, val] of Object.entries(contributorsMapping)) {
+    const mappedGithub = typeof val === 'object' && val !== null ? val.github : val
+    if (mappedGithub && String(mappedGithub).toLowerCase() === lower) return val
+  }
+  return {}
+}
+
 const contributors = contributorMeta.map((item) => {
-  const mapped = contributorsMapping[item.name] || {}
+  const raw = findMapping(item.name)
+  const mapped = raw && typeof raw === 'object' ? raw : { github: raw }
   const github = mapped.github || item.github
   return {
     ...item,
@@ -209,3 +250,9 @@ const contributors = contributorMeta.map((item) => {
 本项目的一些前端样式和后端代码参考了[**西邮Wiki**](https://wiki.cooo.site/)，在此感谢[**西邮Wiki项目组**](https://github.com/xupt-wiki/xupt-wiki)的无私开源。
 
 校园地图功能参考了[**CQUMAPS**（重庆大学校园地图导航系统）](https://github.com/littlemana-bot/CQUMAPS)与[**CQU-openlib**（重庆大学资源共享计划）](https://github.com/INFO-studio/CQU-openlib)，页面布局、交互设计与配色方案借鉴自其开源代码（[cqu-openlib.cn/map](https://cqu-openlib.cn/map)），在此感谢两个项目的无私开源。
+
+在线编辑功能参考了[**南华大学**的Fork项目](https://github.com/hzxyayaya/USC-Wiki-Editor)，在此感谢[**南华大学 Wiki (USC Wiki)**](https://uscwiki.com/)项目组的无私开源
+
+## 特别鸣谢
+
+- 感谢青岛理工大学杨鑫老师为校园地图移动端详情卡片的固定定位与浏览器底部栏适配提供解决思路。
